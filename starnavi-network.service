@@ -1,0 +1,17 @@
+[Unit]
+Description=StarNavi-Network
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/programs/StarNavi-Network
+Environment=COMPOSE_HTTP_TIMEOUT=3600
+ExecStart=/usr/bin/env /usr/bin/docker-compose -f /home/ubuntu/programs/StarNavi-Network/docker-compose.yaml up --build
+ExecStop=/usr/bin/env /usr/bin/docker-compose -f /home/ubuntu/programs/StarNavi-Network/docker-compose.yaml stop
+StandardOutput=syslog
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
