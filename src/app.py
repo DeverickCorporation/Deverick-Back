@@ -4,7 +4,7 @@ import logging.config
 import yaml
 from flask import Flask
 
-from .config import CustomConfig
+from src.config import CustomConfig
 
 
 def init_logger(app):

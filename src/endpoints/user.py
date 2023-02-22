@@ -1,11 +1,12 @@
 from datetime import datetime
+from functools import wraps
 
 import jwt
-from flask import Blueprint, current_app, request, abort, g, Response
+from flask import Blueprint, Response, abort, current_app, g, request
 from jwt.exceptions import DecodeError, InvalidSignatureError
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
-from ..models import Post, UserAccount, PostLike
+from src.models import Post, PostLike, UserAccount
 
 user_routes = Blueprint("user", __name__)
 
@@ -19,17 +20,28 @@ def before_request():
     jwt_token = request.headers["jwt-token"]
 
     try:
-        jwt_token = jwt.decode(jwt_token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+        jwt_token = jwt.decode(
+            jwt_token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
+        )
     except (InvalidSignatureError, DecodeError):
         current_app.logger.info(f"{request.remote_addr} requested with invalid token")
-        return {"success": False, "verefication": "Failed", "message": "Token is invalid"}, 403
+        return {
+            "success": False,
+            "verefication": "Failed",
+            "message": "Token is invalid",
+        }, 403
 
     if datetime.utcfromtimestamp(jwt_token["exp_time"]) < datetime.utcnow():
         current_app.logger.info(f"{request.remote_addr} requested with expired token")
-        return {"success": False, "verefication": "Failed", "message": "Token is expired"}, 403
+        return {
+            "success": False,
+            "verefication": "Failed",
+            "message": "Token is expired",
+        }, 403
 
 
 def add_current_user(route_func):
+    @wraps(route_func)
     def wrapper(*args, **kwargs):
         public_id = jwt.decode(
             request.headers["jwt-token"],
@@ -40,17 +52,16 @@ def add_current_user(route_func):
         try:
             current_user = UserAccount.query.filter_by(public_id=public_id).one()
         except NoResultFound:
-            current_app.logger.error(f"User wasn't fount")
+            current_app.logger.error("User wasn't found")
             return False
 
         g.current_user = current_user
         return route_func(current_user=current_user, *args, **kwargs)
 
-    wrapper.__name__ = route_func.__name__
     return wrapper
 
 
-def is_post_exists(post_id):
+def post_exists(post_id) -> bool:
     try:
         Post.query.filter_by(id=post_id).one()
         return True
@@ -60,7 +71,7 @@ def is_post_exists(post_id):
 
 
 @user_routes.route("/check_auth")
-def verificate():
+def verify():
     return {"success": True, "message": "Token is valid"}, 202
 
 
@@ -85,7 +96,7 @@ def create_post(current_user):
 @add_current_user
 def like_post(current_user):
     post_id = request.json["post_id"]
-    if not is_post_exists(post_id):
+    if not post_exists(post_id):
         return {"success": False, "message": f"Post {post_id} doesn't exist"}, 400
 
     new_like = PostLike(user_account=current_user, post_id=post_id)
@@ -104,15 +115,19 @@ def like_post(current_user):
 @add_current_user
 def unlike_post(current_user):
     post_id = request.json["post_id"]
-    if not is_post_exists(post_id):
+    if not post_exists(post_id):
         return {"success": False, "message": f"Post {post_id} doesn't exist"}, 400
 
     try:
-        like = PostLike.query.filter_by(user_account=current_user, post_id=post_id).one()
+        like = PostLike.query.filter_by(
+            user_account=current_user, post_id=post_id
+        ).one()
         current_app.db.session.delete(like)
         current_app.db.session.commit()
     except NoResultFound:
-        current_app.logger.error(f"User {current_user.login} didn't like post {post_id} yet")
+        current_app.logger.error(
+            f"User {current_user.login} didn't like post {post_id} yet"
+        )
         return {"success": False, "message": "You didn't like this post yet"}, 400
 
     current_app.logger.info(f"User: {current_user.name} unliked a post {post_id}")
@@ -128,7 +143,10 @@ def like_analitics(current_user):
         date_from = datetime.strptime(request.args["date_from"], "%Y-%m-%d")
         date_to = datetime.strptime(request.args["date_to"], "%Y-%m-%d")
     except ValueError:
-        return {"success": False, "message": "args example: ?date_from=2020-02-02&date_to=2020-02-15"}, 400
+        return {
+            "success": False,
+            "message": "args example: ?date_from=2020-02-02&date_to=2020-02-15",
+        }, 400
 
     posts = Post.query.filter_by(user_account=current_user).all()
     if not posts:
@@ -138,7 +156,12 @@ def like_analitics(current_user):
     likes_2d = [get_post_likes(post, date_from, date_to) for post in posts]
     likes = [lk for lks in likes_2d for lk in lks]
 
-    return {"success": True, "message": "your likes", "likes_num": len(likes), "likes_dict": get_likes_dict(likes)}, 200
+    return {
+        "success": True,
+        "message": "your likes",
+        "likes_num": len(likes),
+        "likes_dict": get_likes_dict(likes),
+    }, 200
 
 
 def get_post_likes(post: Post, date_from, date_to):
@@ -155,7 +178,11 @@ def get_post_likes(post: Post, date_from, date_to):
 
 def get_likes_dict(likes: list[PostLike]):
     return [
-        {"post_name": like.post.title, "person_name": like.user_account.name, "time": str(like.creation_time)}
+        {
+            "post_name": like.post.title,
+            "person_name": like.user_account.name,
+            "time": str(like.creation_time),
+        }
         for like in likes
     ]
 
@@ -176,7 +203,7 @@ def after_request(response: Response):
     current_app.db.session.rollback()
 
     if user := g.get("current_user"):
-        if g.get("update_request_time") == False:
+        if g.get("update_request_time") is False:
             return response
 
         user.last_request_time = datetime.utcnow()

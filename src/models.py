@@ -26,8 +26,8 @@ class Post(db.Model):
 
 
 class PostLike(db.Model):
-    __tablename__ = 'post_like'
-    __table_args__ = (db.UniqueConstraint('user_account_id', 'post_id'), )
+    __tablename__ = "post_like"
+    __table_args__ = (db.UniqueConstraint("user_account_id", "post_id"),)
 
     id = db.Column(db.Integer, primary_key=True)
     creation_time = db.Column(db.DateTime, default=datetime.utcnow)

@@ -1,15 +1,13 @@
-from .app import init_app
-
 from flask_sqlalchemy import SQLAlchemy
 
+from src.app import init_app
 
 app = init_app()
 db = SQLAlchemy(app)
 
 
 def create_app():
-    from .endpoints import all_routes
-    from .models import db
+    from src.endpoints import all_routes
 
     app.db = db
 

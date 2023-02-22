@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..models import UserAccount
+from .utils import check_user_data
 
 authenticate_routes = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -14,6 +15,8 @@ authenticate_routes = Blueprint("auth", __name__, url_prefix="/auth")
 @authenticate_routes.route("/registration", methods=["POST"])
 def signup_user():
     data = request.json
+    if not check_user_data(data, ["login", "password", "name"]):
+        abort(400)
 
     new_user = UserAccount(
         public_id=str(uuid.uuid1()),
@@ -38,7 +41,7 @@ def signup_user():
 @authenticate_routes.route("/login", methods=["POST"])
 def signin_user():
     credentials = request.json
-    if not "login" in credentials or not "password" in credentials:
+    if not check_user_data(credentials, ["login", "password"]):
         abort(400)
 
     try:
@@ -49,16 +52,17 @@ def signin_user():
             "message": f"No user: {credentials['login']} found",
         }, 403
 
-    if check_password_hash(user.password, credentials["password"]):
-        exp_time = int(datetime.timestamp(datetime.now() + current_app.config["JWT_LIFETIME"]))
-        jwt_data = {"public_id": user.public_id, "exp_time": exp_time}
-        jwt_token = jwt.encode(jwt_data, current_app.config["SECRET_KEY"], "HS256")
+    if not check_password_hash(user.password, credentials["password"]):
+        return {"success": False, "message": "Incorrect password"}, 403
 
-        user.last_login_time = datetime.utcnow()
-        current_app.db.session.commit()
+    exp_time = int(
+        datetime.timestamp(datetime.now() + current_app.config["JWT_LIFETIME"])
+    )
+    jwt_data = {"public_id": user.public_id, "exp_time": exp_time}
+    jwt_token = jwt.encode(jwt_data, current_app.config["SECRET_KEY"], "HS256")
 
+    user.last_login_time = datetime.utcnow()
+    current_app.db.session.commit()
 
-        current_app.logger.info(f"New token created for {user.login} exp_time: {exp_time}")
-        return {"success": True, "token": jwt_token}, 202
-
-    return {"success": False, "message": f"Incorrect password"}, 403
+    current_app.logger.info(f"New token created for {user.login} exp_time: {exp_time}")
+    return {"success": True, "token": jwt_token}, 202
