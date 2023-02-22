@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import jwt
-from flask import Blueprint, current_app, request, abort
+from flask import Blueprint, current_app, request, abort, g, Response
 from jwt.exceptions import DecodeError, InvalidSignatureError
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
@@ -14,7 +14,7 @@ user_routes = Blueprint("user", __name__)
 def before_request():
     if not "jwt-token" in request.headers:
         current_app.logger.info(f"{request.remote_addr} requested without token")
-        return {"success": False, "message": "No token"}, 403
+        return {"success": False, "verefication": "Failed", "message": "No token"}, 403
 
     jwt_token = request.headers["jwt-token"]
 
@@ -22,31 +22,36 @@ def before_request():
         jwt_token = jwt.decode(jwt_token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
     except (InvalidSignatureError, DecodeError):
         current_app.logger.info(f"{request.remote_addr} requested with invalid token")
-        return {"success": False, "message": "Token is invalid"}, 403
+        return {"success": False, "verefication": "Failed", "message": "Token is invalid"}, 403
 
     if datetime.utcfromtimestamp(jwt_token["exp_time"]) < datetime.utcnow():
         current_app.logger.info(f"{request.remote_addr} requested with expired token")
-        return {"success": False, "message": "Token is expired"}, 403
+        return {"success": False, "verefication": "Failed", "message": "Token is expired"}, 403
 
 
 def add_current_user(route_func):
     def wrapper(*args, **kwargs):
-        public_id = jwt.decode(
-            request.headers["jwt-token"],
-            current_app.config["SECRET_KEY"],
-            algorithms=["HS256"],
-        )["public_id"]
+        current_user = get_current_user()
 
-        try:
-            current_user = UserAccount.query.filter_by(public_id=public_id).one()
-        except NoResultFound:
-            current_app.logger.error(f"User wasn't fount {current_user.login}")
-            return {"success": False, "message": f"No user found"}, 403
         result = route_func(current_user=current_user, *args, **kwargs)
         return result
 
     wrapper.__name__ = route_func.__name__
     return wrapper
+
+
+def get_current_user():
+    public_id = jwt.decode(
+        request.headers["jwt-token"],
+        current_app.config["SECRET_KEY"],
+        algorithms=["HS256"],
+    )["public_id"]
+
+    try:
+        return UserAccount.query.filter_by(public_id=public_id).one()
+    except NoResultFound:
+        current_app.logger.error(f"User wasn't fount")
+        return False
 
 
 def is_post_exists(post_id):
@@ -116,3 +121,25 @@ def unlike_post(current_user):
 
     current_app.logger.info(f"User: {current_user.name} unliked a post {post_id}")
     return {"success": True, "message": "Post unliked"}, 202
+
+
+@user_routes.route("/my_activity")
+@add_current_user
+def my_activity(current_user):
+    return {
+        "success": True,
+        "last_login": current_user.last_login_time.strftime("%d/%m/%Y, %H:%M:%S"),
+        "last_request": current_user.last_request_time.strftime("%d/%m/%Y, %H:%M:%S"),
+    }, 202
+
+
+@user_routes.after_request
+def after_request(
+    response: Response,
+):
+    if "verefication" in response.json and response.json["verefication"] == "Failed":
+        return response
+
+    get_current_user().last_request_time = datetime.utcnow()
+    current_app.db.session.commit()
+    return response

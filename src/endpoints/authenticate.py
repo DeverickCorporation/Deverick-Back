@@ -54,6 +54,10 @@ def signin_user():
         jwt_data = {"public_id": user.public_id, "exp_time": exp_time}
         jwt_token = jwt.encode(jwt_data, current_app.config["SECRET_KEY"], "HS256")
 
+        user.last_login_time = datetime.utcnow()
+        current_app.db.session.commit()
+
+
         current_app.logger.info(f"New token created for {user.login} exp_time: {exp_time}")
         return {"success": True, "token": jwt_token}, 202
 
