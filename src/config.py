@@ -23,6 +23,7 @@ class CustomConfig(Config):
             "SQLALCHEMY_DATABASE_URI", default=self.load_db_conf()
         )
         self["JWT_LIFETIME"] = timedelta(minutes=env.int("JWT_LIFETIME"))
+        self["DOCS_LINK"] = env.str("DOCS_LINK")
 
     @staticmethod
     def load_db_conf():

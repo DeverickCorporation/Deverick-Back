@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, current_app
 
 common_routes = Blueprint("common", __name__)
 
@@ -6,6 +6,10 @@ common_routes = Blueprint("common", __name__)
 @common_routes.route("/favicon.ico")
 def favicon():
     return {"favicon": False}
+
+@common_routes.route("/")
+def index():
+    return {"success": True, "message": "Welcome page", "Documentation": current_app.config["DOCS_LINK"]}, 202
 
 
 @common_routes.app_errorhandler(401)
