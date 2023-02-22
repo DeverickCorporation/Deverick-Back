@@ -119,6 +119,37 @@ def unlike_post(current_user):
     return {"success": True, "message": "Post unliked"}, 202
 
 
+@user_routes.route("/analitics")
+@add_current_user
+def like_analitics(current_user):
+    print(request.args)
+
+    try:
+        date_from = datetime.strptime(request.args["date_from"], "%Y-%m-%d")
+        date_to = datetime.strptime(request.args["date_to"], "%Y-%m-%d")
+    except ValueError:
+        return {"success": False, "message": "args example: ?date_from=2020-02-02&date_to=2020-02-15"}, 400
+
+    posts = Post.query.filter_by(user_account=current_user).all()
+    if not posts:
+        current_app.logger.error(f"User {current_user.login} hasn't posts")
+        return {"success": False, "message": "You haven'n posts"}, 409
+    print(posts)
+    
+    likes_2d = [get_post_likes(post,date_from,date_to) for post in posts]
+    likes = [lk for lks in likes_2d for lk in lks]
+
+    print(likes)
+
+    return {"success": True, "message": len(likes)}, 200
+
+def get_post_likes(post:Post,date_from,date_to):
+    try:
+        return PostLike.query.filter_by(post=post).filter(PostLike.creation_time >= date_from).filter(PostLike.creation_time <= date_to).all()
+    except NoResultFound:
+        return []
+
+
 @user_routes.route("/my_activity")
 @add_current_user
 def my_activity(current_user):
@@ -135,7 +166,7 @@ def after_request(response: Response):
     current_app.db.session.rollback()
 
     if (user := g.get("current_user")):
-        
+
         if g.get("update_request_time") == False:
             return response
 

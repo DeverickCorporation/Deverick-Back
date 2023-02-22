@@ -16,7 +16,7 @@ handlers:
 
 loggers:
   verificator:
-    level: DEBUG
+    level: INFO
     handlers:
     - console_handler
     propagate: false
