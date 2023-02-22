@@ -8,6 +8,14 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from src.models import Post, PostLike, UserAccount
 
+from .utils import (
+    check_user_data,
+    get_likes_dict,
+    get_post_dict,
+    get_post_likes,
+    post_exists,
+)
+
 user_routes = Blueprint("user", __name__)
 
 
@@ -61,15 +69,6 @@ def add_current_user(route_func):
     return wrapper
 
 
-def post_exists(post_id) -> bool:
-    try:
-        Post.query.filter_by(id=post_id).one()
-        return True
-    except NoResultFound:
-        current_app.logger.error(f"Post {post_id} doesn't exist")
-        return False
-
-
 @user_routes.route("/check_auth")
 def verify():
     return {"success": True, "message": "Token is valid"}, 202
@@ -97,6 +96,7 @@ def create_post(current_user):
 def like_post(current_user):
     post_id = request.json["post_id"]
     if not post_exists(post_id):
+        current_app.logger.error(f"Post {post_id} doesn't exist")
         return {"success": False, "message": f"Post {post_id} doesn't exist"}, 400
 
     new_like = PostLike(user_account=current_user, post_id=post_id)
@@ -116,6 +116,7 @@ def like_post(current_user):
 def unlike_post(current_user):
     post_id = request.json["post_id"]
     if not post_exists(post_id):
+        current_app.logger.error(f"Post {post_id} doesn't exist")
         return {"success": False, "message": f"Post {post_id} doesn't exist"}, 400
 
     try:
@@ -164,29 +165,6 @@ def like_analitics(current_user):
     }, 200
 
 
-def get_post_likes(post: Post, date_from, date_to):
-    try:
-        return (
-            PostLike.query.filter_by(post=post)
-            .filter(PostLike.creation_time >= date_from)
-            .filter(PostLike.creation_time <= date_to)
-            .all()
-        )
-    except NoResultFound:
-        return []
-
-
-def get_likes_dict(likes: list[PostLike]):
-    return [
-        {
-            "post_name": like.post.title,
-            "person_name": like.user_account.name,
-            "time": str(like.creation_time),
-        }
-        for like in likes
-    ]
-
-
 @user_routes.route("/my_activity")
 @add_current_user
 def my_activity(current_user):
@@ -196,6 +174,22 @@ def my_activity(current_user):
         "last_login": current_user.last_login_time.strftime("%d/%m/%Y, %H:%M:%S"),
         "last_request": current_user.last_request_time.strftime("%d/%m/%Y, %H:%M:%S"),
     }, 202
+
+
+@user_routes.route("/posts")
+def get_posts():
+    data = request.args
+    if not check_user_data(data, ["limit"]) or not data["limit"].isdigit():
+        abort(400)
+
+    posts = Post.query.limit(data["limit"]).all()
+
+    return {
+        "success": True,
+        "message": "posts",
+        "posts_num": len(posts),
+        "posts_dict": get_post_dict(posts),
+    }, 200
 
 
 @user_routes.after_request
