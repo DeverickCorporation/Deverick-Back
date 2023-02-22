@@ -11,7 +11,7 @@ from ..models import UserAccount
 authenticate_routes = Blueprint("auth", __name__, url_prefix="/auth")
 
 
-@authenticate_routes.route("/register", methods=["POST"])
+@authenticate_routes.route("/registration", methods=["POST"])
 def signup_user():
     data = request.json
 
@@ -50,10 +50,11 @@ def signin_user():
         }, 403
 
     if check_password_hash(user.password, credentials["password"]):
-        exp_date = int(datetime.timestamp(datetime.now()))
-        jwt_data = {"public_id": user.public_id, "exp_date": exp_date}
+        exp_time = int(datetime.timestamp(datetime.now() + current_app.config["JWT_LIFETIME"]))
+        jwt_data = {"public_id": user.public_id, "exp_time": exp_time}
         jwt_token = jwt.encode(jwt_data, current_app.config["SECRET_KEY"], "HS256")
 
+        current_app.logger.info(f"New token created for {user.login} exp_time: {exp_time}")
         return {"success": True, "token": jwt_token}, 202
 
     return {"success": False, "message": f"Incorrect password"}, 403
