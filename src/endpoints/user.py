@@ -31,27 +31,23 @@ def before_request():
 
 def add_current_user(route_func):
     def wrapper(*args, **kwargs):
-        current_user = get_current_user()
+        public_id = jwt.decode(
+            request.headers["jwt-token"],
+            current_app.config["SECRET_KEY"],
+            algorithms=["HS256"],
+        )["public_id"]
 
-        result = route_func(current_user=current_user, *args, **kwargs)
-        return result
+        try:
+            current_user = UserAccount.query.filter_by(public_id=public_id).one()
+        except NoResultFound:
+            current_app.logger.error(f"User wasn't fount")
+            return False
+
+        g.current_user = current_user
+        return route_func(current_user=current_user, *args, **kwargs)
 
     wrapper.__name__ = route_func.__name__
     return wrapper
-
-
-def get_current_user():
-    public_id = jwt.decode(
-        request.headers["jwt-token"],
-        current_app.config["SECRET_KEY"],
-        algorithms=["HS256"],
-    )["public_id"]
-
-    try:
-        return UserAccount.query.filter_by(public_id=public_id).one()
-    except NoResultFound:
-        current_app.logger.error(f"User wasn't fount")
-        return False
 
 
 def is_post_exists(post_id):
@@ -126,6 +122,7 @@ def unlike_post(current_user):
 @user_routes.route("/my_activity")
 @add_current_user
 def my_activity(current_user):
+    g.update_request_time = False
     return {
         "success": True,
         "last_login": current_user.last_login_time.strftime("%d/%m/%Y, %H:%M:%S"),
@@ -134,12 +131,16 @@ def my_activity(current_user):
 
 
 @user_routes.after_request
-def after_request(
-    response: Response,
-):
-    if "verefication" in response.json and response.json["verefication"] == "Failed":
-        return response
+def after_request(response: Response):
+    current_app.db.session.rollback()
 
-    get_current_user().last_request_time = datetime.utcnow()
-    current_app.db.session.commit()
+    if (user := g.get("current_user")):
+        
+        if g.get("update_request_time") == False:
+            return response
+
+        user.last_request_time = datetime.utcnow()
+        current_app.db.session.commit()
+        current_app.logger.debug(f"User {user.login} Last request time updated")
+
     return response
