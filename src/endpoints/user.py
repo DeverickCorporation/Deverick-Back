@@ -134,20 +134,30 @@ def like_analitics(current_user):
     if not posts:
         current_app.logger.error(f"User {current_user.login} hasn't posts")
         return {"success": False, "message": "You haven'n posts"}, 409
-    print(posts)
-    
-    likes_2d = [get_post_likes(post,date_from,date_to) for post in posts]
+
+    likes_2d = [get_post_likes(post, date_from, date_to) for post in posts]
     likes = [lk for lks in likes_2d for lk in lks]
 
-    print(likes)
+    return {"success": True, "message": "your likes", "likes_num": len(likes), "likes_dict": get_likes_dict(likes)}, 200
 
-    return {"success": True, "message": len(likes)}, 200
 
-def get_post_likes(post:Post,date_from,date_to):
+def get_post_likes(post: Post, date_from, date_to):
     try:
-        return PostLike.query.filter_by(post=post).filter(PostLike.creation_time >= date_from).filter(PostLike.creation_time <= date_to).all()
+        return (
+            PostLike.query.filter_by(post=post)
+            .filter(PostLike.creation_time >= date_from)
+            .filter(PostLike.creation_time <= date_to)
+            .all()
+        )
     except NoResultFound:
         return []
+
+
+def get_likes_dict(likes: list[PostLike]):
+    return [
+        {"post_name": like.post.title, "person_name": like.user_account.name, "time": str(like.creation_time)}
+        for like in likes
+    ]
 
 
 @user_routes.route("/my_activity")
@@ -165,8 +175,7 @@ def my_activity(current_user):
 def after_request(response: Response):
     current_app.db.session.rollback()
 
-    if (user := g.get("current_user")):
-
+    if user := g.get("current_user"):
         if g.get("update_request_time") == False:
             return response
 
