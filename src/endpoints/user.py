@@ -2,19 +2,13 @@ from datetime import datetime
 from functools import wraps
 
 import jwt
-from flask import Blueprint, Response, abort, current_app, g, request
+from flask import Blueprint, Response, abort, current_app, request
 from jwt.exceptions import DecodeError, InvalidSignatureError
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from src.models import Post, PostLike, UserAccount
 
-from .utils import (
-    check_user_data,
-    get_likes_dict,
-    get_post_dict,
-    get_post_likes,
-    post_exists,
-)
+from .utils import check_user_data, get_all_dicts
 
 user_routes = Blueprint("user", __name__)
 
@@ -63,7 +57,7 @@ def add_current_user(route_func):
             current_app.logger.error("User wasn't found")
             return False
 
-        g.current_user = current_user
+        request.current_user = current_user
         return route_func(current_user=current_user, *args, **kwargs)
 
     return wrapper
@@ -95,7 +89,7 @@ def create_post(current_user):
 @add_current_user
 def like_post(current_user):
     post_id = request.json["post_id"]
-    if not post_exists(post_id):
+    if not Post.exists_post(post_id):
         current_app.logger.error(f"Post {post_id} doesn't exist")
         return {"success": False, "message": f"Post {post_id} doesn't exist"}, 400
 
@@ -115,7 +109,7 @@ def like_post(current_user):
 @add_current_user
 def unlike_post(current_user):
     post_id = request.json["post_id"]
-    if not post_exists(post_id):
+    if not Post.exists_post(post_id):
         current_app.logger.error(f"Post {post_id} doesn't exist")
         return {"success": False, "message": f"Post {post_id} doesn't exist"}, 400
 
@@ -138,8 +132,6 @@ def unlike_post(current_user):
 @user_routes.route("/analitics")
 @add_current_user
 def like_analitics(current_user):
-    print(request.args)
-
     try:
         date_from = datetime.strptime(request.args["date_from"], "%Y-%m-%d")
         date_to = datetime.strptime(request.args["date_to"], "%Y-%m-%d")
@@ -148,32 +140,28 @@ def like_analitics(current_user):
             "success": False,
             "message": "args example: ?date_from=2020-02-02&date_to=2020-02-15",
         }, 400
-
-    posts = Post.query.filter_by(user_account=current_user).all()
-    if not posts:
+    if not current_user.has_posts():
         current_app.logger.error(f"User {current_user.login} hasn't posts")
         return {"success": False, "message": "You haven'n posts"}, 409
 
-    likes_2d = [get_post_likes(post, date_from, date_to) for post in posts]
-    likes = [lk for lks in likes_2d for lk in lks]
-
+    likes = current_user.get_likes(date_from, date_to)
     return {
         "success": True,
         "message": "your likes",
         "likes_num": len(likes),
-        "likes_dict": get_likes_dict(likes),
+        "likes_dict": get_all_dicts(likes),
     }, 200
 
 
 @user_routes.route("/my_activity")
 @add_current_user
 def my_activity(current_user):
-    g.update_request_time = False
+    request.ignore_update_time = True
     return {
         "success": True,
         "last_login": current_user.last_login_time.strftime("%d/%m/%Y, %H:%M:%S"),
         "last_request": current_user.last_request_time.strftime("%d/%m/%Y, %H:%M:%S"),
-    }, 202
+    }, 200
 
 
 @user_routes.route("/posts")
@@ -188,7 +176,7 @@ def get_posts():
         "success": True,
         "message": "posts",
         "posts_num": len(posts),
-        "posts_dict": get_post_dict(posts),
+        "posts_dict": get_all_dicts(posts),
     }, 200
 
 
@@ -196,8 +184,8 @@ def get_posts():
 def after_request(response: Response):
     current_app.db.session.rollback()
 
-    if user := g.get("current_user"):
-        if g.get("update_request_time") is False:
+    if user := getattr(request, "current_user", False):
+        if getattr(request, "ignore_update_time", False):
             return response
 
         user.last_request_time = datetime.utcnow()

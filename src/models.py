@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from sqlalchemy.exc import NoResultFound
+
 from src import db
 
 
@@ -15,6 +17,18 @@ class UserAccount(db.Model):
     author = db.relationship("Post", backref="user_account")
     like = db.relationship("PostLike", backref="user_account")
 
+    def has_posts(self) -> bool:
+        first_post = Post.query.filter_by(user_account=self).first()
+        return bool(first_post)
+
+    def get_likes(self,date_from, date_to):
+        posts = Post.query.filter_by(user_account=self).all()
+        if not posts:
+            return False
+
+        likes_2d = [post.get_likes(date_from, date_to) for post in posts]
+        return [lk for lks in likes_2d for lk in lks]
+
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,6 +37,32 @@ class Post(db.Model):
     creation_time = db.Column(db.DateTime, default=datetime.utcnow)
     user_account_id = db.Column(db.Integer, db.ForeignKey("user_account.id"))
     liked_by = db.relationship("PostLike", backref="post")
+
+    @staticmethod
+    def exists_post(post_id: int) -> bool:
+        try:
+            Post.query.filter_by(id=post_id).one()
+            return True
+        except NoResultFound:
+            return False
+
+    def get_dict(self):
+        return {
+            "post_id": self.id,
+            "post_title": self.title,
+            "post_text": self.text,
+            "author_name": self.user_account.name,
+            "likes_num": PostLike.query.filter_by(post=self).count(),
+            "time": self.creation_time.strftime("%d/%m/%Y, %H:%M:%S"),
+        }
+
+    def get_likes(self, date_from, date_to):
+        return (
+            PostLike.query.filter_by(post=self)
+            .filter(PostLike.creation_time >= date_from)
+            .filter(PostLike.creation_time <= date_to)
+            .all()
+        )
 
 
 class PostLike(db.Model):
@@ -33,3 +73,11 @@ class PostLike(db.Model):
     creation_time = db.Column(db.DateTime, default=datetime.utcnow)
     user_account_id = db.Column(db.Integer, db.ForeignKey("user_account.id"))
     post_id = db.Column(db.Integer, db.ForeignKey("post.id"))
+
+    def get_dict(self):
+        return {
+            "post_id": self.post.id,
+            "post_name": self.post.title,
+            "person_name": self.user_account.name,
+            "time": self.creation_time.strftime("%d/%m/%Y, %H:%M:%S"),
+        }

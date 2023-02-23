@@ -11,9 +11,6 @@ env.read_env(override=True)
 class CustomConfig(Config):
     def load_config(self):
         with env.prefixed("FLASK_"):
-            self["PERMANENT_SESSION_LIFETIME"] = timedelta(
-                minutes=env.int("PERMANENT_SESSION_LIFETIME")
-            )
             self["SECRET_KEY"] = secrets.token_hex(env.int("SECRET_KEY_BYTES"))
             self["SQLALCHEMY_TRACK_MODIFICATIONS"] = env.bool(
                 "SQLALCHEMY_TRACK_MODIFICATIONS"

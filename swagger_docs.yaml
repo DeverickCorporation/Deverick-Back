@@ -1,0 +1,259 @@
+openapi: 3.0.0
+info:
+  title: StarNavi-Network
+  description: >-
+    Documentation for StarNavi-Network API
+  version: 0.1.9-oas3
+servers:
+  - url: http://91.218.195.45:8003
+    description: Main (production) server
+  - url: http://localhost:5002
+    description: Test local server
+paths:
+  /auth/registration:
+    post:
+      summary: Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  example: unique_login
+                password:
+                  type: string
+                  example: pass123
+                name:
+                  type: string
+                  example: your_name
+      responses: 
+        '201':
+          description: Created
+        '409':
+          description: Username is arleady taken
+        '400':
+          description: Bad Request
+          
+          
+  /auth/login:
+    post:
+      summary: Login to get jwt-token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  example: unique_login
+                password:
+                  type: string
+                  example: pass123
+      responses: 
+        '202':
+          description: Accepted
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: True
+                  token:
+                    type: string
+                    example: <jwt-token>
+        '403':
+          description: Forbidden, reason
+          
+  /check_auth:
+    get:
+      summary: Check if your jwt-token valid 
+      parameters:
+        - $ref: '#/components/parameters/token'
+
+      responses: 
+        '201':
+          description: Created
+        '403':
+          description: Rejection reason
+
+  /create_post:
+    post:
+      summary: Write your post
+      parameters:
+        - $ref: '#/components/parameters/token'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Why STARNAVI
+                text:
+                  type: string
+                  example: "A Partner, Not An Agency We’re in this together: we help you find great software developers so you can stay focused on delivering a great product."
+
+      responses: 
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+          
+  /like_post:
+    post:
+      summary: Like a post
+      parameters:
+        - $ref: '#/components/parameters/token'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                post_id:
+                  type: integer
+                  example: 1
+
+
+      responses: 
+        '202':
+          description: Post liked
+        '400':
+          description: 1. Post doesn't exist<br>2. You have already liked this post
+          
+  /unlike_post:
+    post:
+      summary: Unlike a post
+      parameters:
+        - $ref: '#/components/parameters/token'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                post_id:
+                  type: integer
+                  example: 1
+      responses: 
+        '202':
+          description: Post unliked
+        '400':
+          description: 1. Post doesn't exist<br>2. You have already liked this post
+
+
+  /my_activity:
+    get:
+      summary: Get your last login and last request time
+      parameters:
+        - $ref: '#/components/parameters/token'
+      responses: 
+        '200':
+          description: your data
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: True
+                  last_login:
+                    type: string
+                    example: "22/02/2023, 13:16:47"
+                  last_request:
+                    type: string
+                    example: "22/02/2023, 14:06:31"
+
+  /analitics:
+    get:
+      summary: Get your post's likes data
+      parameters:
+        - $ref: '#/components/parameters/token'
+        - in: query
+          name: date_from
+          schema:
+            type: string
+          example: 2020-02-02
+        - in: query
+          name: date_to
+          schema:
+            type: string
+          example: 2023-03-23
+      responses: 
+        '200':
+          description: likes data
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: True
+                  message:
+                    type: string
+                    example: your likes
+                  likes_num:
+                    type: integer
+                    example: 5
+                  likes_dict:
+                    type: object
+                    example: {"all_likes":"data"}
+        '400':
+          description: Bad Request
+          
+  /posts:
+    get:
+      summary: Get the latest posts from all users
+      parameters:
+        - $ref: '#/components/parameters/token'
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          example: 10
+
+      responses: 
+        '200':
+          description: posts data
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: True
+                  message:
+                    type: string
+                    example: posts
+                  posts_num:
+                    type: integer
+                    example: 5
+                  posts_dict:
+                    type: object
+                    example: {"all_posts":"data"}
+        '400':
+          description: Bad Request
+          
+components:
+
+  parameters:
+    token:
+      name: jwt-token
+      in: header
+      schema:
+        type: string
+        example: <jwt-token>
