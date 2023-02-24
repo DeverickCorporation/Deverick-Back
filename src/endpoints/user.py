@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from src.models import Post, PostLike, UserAccount
 
-from .utils import check_user_data, get_all_dicts
+from .utils import fail_validation, get_all_dicts
 
 user_routes = Blueprint("user", __name__)
 
@@ -167,7 +167,7 @@ def my_activity(current_user):
 @user_routes.route("/posts")
 def get_posts():
     data = request.args
-    if not check_user_data(data, ["limit"]) or not data["limit"].isdigit():
+    if fail_validation(data, ["limit"]) or not data["limit"].isdigit():
         abort(400)
 
     posts = Post.query.limit(data["limit"]).all()

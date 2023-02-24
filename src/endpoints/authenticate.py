@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..models import UserAccount
-from .utils import check_user_data
+from .utils import fail_validation
 
 authenticate_routes = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -15,8 +15,10 @@ authenticate_routes = Blueprint("auth", __name__, url_prefix="/auth")
 @authenticate_routes.route("/registration", methods=["POST"])
 def signup_user():
     data = request.json
-    if not check_user_data(data, ["login", "password", "name"]):
-        abort(400)
+    # fmt: off
+    if resp := fail_validation(data, ["login", "password", "name"], current_app.config["USER_MIN_DATA_LEN"]):
+        return {"success": False, "message": resp}, 400
+    # fmt: on
 
     new_user = UserAccount(
         public_id=str(uuid.uuid1()),
@@ -41,9 +43,10 @@ def signup_user():
 @authenticate_routes.route("/login", methods=["POST"])
 def signin_user():
     credentials = request.json
-    if not check_user_data(credentials, ["login", "password"]):
-        abort(400)
-
+    # fmt: off
+    if resp := fail_validation(credentials, ["login", "password"], current_app.config["USER_MIN_DATA_LEN"]):
+        return {"success": False, "message": resp}, 400
+    # fmt: on
     try:
         user = UserAccount.query.filter_by(login=credentials["login"]).one()
     except NoResultFound:

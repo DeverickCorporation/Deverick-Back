@@ -3,6 +3,7 @@ import logging.config
 
 import yaml
 from flask import Flask
+from flask_cors import CORS
 
 from src.config import CustomConfig
 
@@ -17,6 +18,7 @@ def init_logger(app):
 def init_app():
     Flask.config_class = CustomConfig
     app = Flask(__name__)
+    CORS(app)
 
     app.config.load_config()
     init_logger(app)

@@ -2,6 +2,7 @@
 ## In this social network you can find truly highly qualified developers!
 
 ## [Documentation](app.swaggerhub.com/apis/SeniorVolodymyr/StarNavi-Network)
+## [API](http://91.218.195.45:8003)
 
 ### Server setup
 1. `mkdir programs/StarNavi-Network`

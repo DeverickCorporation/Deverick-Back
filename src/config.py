@@ -21,6 +21,8 @@ class CustomConfig(Config):
         )
         self["JWT_LIFETIME"] = timedelta(minutes=env.int("JWT_LIFETIME"))
         self["DOCS_LINK"] = env.str("DOCS_LINK")
+        self["USER_MIN_DATA_LEN"] = env.int("USER_MIN_DATA_LEN")
+
 
     @staticmethod
     def load_db_conf():
