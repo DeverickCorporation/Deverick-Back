@@ -18,7 +18,7 @@ def init_logger(app):
 def init_app():
     Flask.config_class = CustomConfig
     app = Flask(__name__)
-    CORS(app)
+    CORS(app,allow_headers="*",origins="*")
 
     app.config.load_config()
     init_logger(app)

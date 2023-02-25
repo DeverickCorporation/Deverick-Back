@@ -4,6 +4,7 @@ from functools import wraps
 import jwt
 from flask import Blueprint, Response, abort, current_app, request
 from jwt.exceptions import DecodeError, InvalidSignatureError
+from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from src.models import Post, PostLike, UserAccount
@@ -15,6 +16,9 @@ user_routes = Blueprint("user", __name__)
 
 @user_routes.before_request
 def before_request():
+    if request.method == "OPTIONS":
+        return {}, 200
+
     if not "jwt-token" in request.headers:
         current_app.logger.info(f"{request.remote_addr} requested without token")
         return {"success": False, "verefication": "Failed", "message": "No token"}, 403
@@ -72,6 +76,9 @@ def verify():
 @add_current_user
 def create_post(current_user):
     data = request.json
+    if resp := fail_validation(data, ["title", "text"], 5):
+        return {"success": False, "message": resp}, 400
+
     new_post = Post(title=data["title"], text=data["text"], user_account=current_user)
     current_app.db.session.add(new_post)
 
@@ -170,7 +177,7 @@ def get_posts():
     if fail_validation(data, ["limit"]) or not data["limit"].isdigit():
         abort(400)
 
-    posts = Post.query.limit(data["limit"]).all()
+    posts = Post.query.order_by(desc(Post.creation_time)).limit(data["limit"]).all()
 
     return {
         "success": True,

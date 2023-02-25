@@ -33,7 +33,7 @@ def signup_user():
     except IntegrityError:
         return {
             "success": False,
-            "message": f"Username:\"{data['login']}\" is arleady taken",
+            "message": f"Username: \"{data['login']}\" is already taken",
         }, 409
 
     current_app.logger.info(f"New user created: {data['login']}")
