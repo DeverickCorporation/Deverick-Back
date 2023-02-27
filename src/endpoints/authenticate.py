@@ -61,7 +61,7 @@ def signin_user():
     exp_time = int(
         datetime.timestamp(datetime.now() + current_app.config["JWT_LIFETIME"])
     )
-    jwt_data = {"public_id": user.public_id, "name": user.name, "exp_time": exp_time}
+    jwt_data = {"public_id": user.public_id, "name": user.name,"login": user.login, "exp_time": exp_time}
     jwt_token = jwt.encode(jwt_data, current_app.config["SECRET_KEY"], "HS256")
 
     user.last_login_time = datetime.utcnow()
