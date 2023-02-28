@@ -21,7 +21,14 @@ class UserAccount(db.Model):
         first_post = Post.query.filter_by(user_account=self).first()
         return bool(first_post)
 
-    def get_likes(self,date_from, date_to):
+    def liked_post(self, post_id: int) -> bool:
+        try:
+            PostLike.query.filter_by(post_id=post_id, user_account=self).one()
+            return {"user_like": True}
+        except NoResultFound:
+            return {"user_like": False}
+
+    def get_likes(self, date_from, date_to):
         posts = Post.query.filter_by(user_account=self).all()
         if not posts:
             return False
@@ -76,6 +83,7 @@ class PostLike(db.Model):
 
     def get_dict(self):
         return {
+            "like_id": self.id,
             "post_id": self.post.id,
             "post_name": self.post.title,
             "person_name": self.user_account.name,

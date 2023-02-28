@@ -26,9 +26,7 @@ def before_request():
     jwt_token = request.headers["jwt-token"]
 
     try:
-        jwt_token = jwt.decode(
-            jwt_token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
-        )
+        jwt_token = jwt.decode(jwt_token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
     except (InvalidSignatureError, DecodeError):
         current_app.logger.info(f"{request.remote_addr} requested with invalid token")
         return {
@@ -121,15 +119,11 @@ def unlike_post(current_user):
         return {"success": False, "message": f"Post {post_id} doesn't exist"}, 400
 
     try:
-        like = PostLike.query.filter_by(
-            user_account=current_user, post_id=post_id
-        ).one()
+        like = PostLike.query.filter_by(user_account=current_user, post_id=post_id).one()
         current_app.db.session.delete(like)
         current_app.db.session.commit()
     except NoResultFound:
-        current_app.logger.error(
-            f"User {current_user.login} didn't like post {post_id} yet"
-        )
+        current_app.logger.error(f"User {current_user.login} didn't like post {post_id} yet")
         return {"success": False, "message": "You didn't like this post yet"}, 400
 
     current_app.logger.info(f"User: {current_user.name} unliked a post {post_id}")
@@ -172,18 +166,23 @@ def my_activity(current_user):
 
 
 @user_routes.route("/posts")
-def get_posts():
+@add_current_user
+def get_posts(current_user):
     data = request.args
     if fail_validation(data, ["limit"]) or not data["limit"].isdigit():
         abort(400)
 
     posts = Post.query.order_by(desc(Post.creation_time)).limit(data["limit"]).all()
+    posts_dicts = get_all_dicts(posts)
+
+    # add current user like info
+    [post.update(current_user.liked_post(post["post_id"])) for post in posts_dicts]
 
     return {
         "success": True,
         "message": "posts",
         "posts_num": len(posts),
-        "posts_dict": get_all_dicts(posts),
+        "posts_dict": posts_dicts,
     }, 200
 
 
