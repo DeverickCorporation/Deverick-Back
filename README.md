@@ -1,6 +1,7 @@
 # StarNavi-Network
 ## In this social network you can find truly highly qualified developers!
 
+## [StarNavi-Network](http://91.218.195.45:8004)
 ## [Documentation](app.swaggerhub.com/apis/SeniorVolodymyr/StarNavi-Network)
 ## [API](http://91.218.195.45:8003)
 
