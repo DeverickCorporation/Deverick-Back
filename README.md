@@ -14,3 +14,10 @@
 1. `sudo systemctl enable starnavi-network.service`
 1. `sudo systemctl start starnavi-network.service`
 1. `sudo systemctl status starnavi-network.service`
+
+### Dev setup
+1. Optional PowerShell permitions: `Set-ExecutionPolicy unrestricted`
+1. `python -m venv venv`
+1. `.\venv\Scripts\activate`
+1. `pip install -r .\requirements.txt`
+1. Create `.env` file
