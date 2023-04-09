@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: StarNavi-Network
+  title: Deverick
   description: >-
-    Documentation for StarNavi-Network API
+    Documentation for Deverick API
   version: 0.1.9-oas3
 servers:
   - url: http://91.218.195.45:8003
@@ -97,10 +97,10 @@ paths:
               properties:
                 title:
                   type: string
-                  example: Why STARNAVI
+                  example: Why Deverick
                 text:
                   type: string
-                  example: "A Partner, Not An Agency We’re in this together: we help you find great software developers so you can stay focused on delivering a great product."
+                  example: "The best network"
 
       responses: 
         '201':

@@ -1,9 +1,9 @@
 version: "3.8"
 
 services:
-  test_website:
-    container_name: StarNavi-Network
+  deverick_back:
+    container_name: Deverick-Back
     network_mode: "host"
-    build: "https://github.com/sovheiv/StarNavi-Network.git#main:"
+    build: "https://github.com/sovheiv/Deverick.git#main:"
     env_file:
       - .env

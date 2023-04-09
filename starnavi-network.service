@@ -1,14 +1,14 @@
 [Unit]
-Description=StarNavi-Network
+Description=Deverick
 Requires=docker.service
 After=docker.service
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/ubuntu/programs/StarNavi-Network
+WorkingDirectory=/home/ubuntu/programs/Deverick
 Environment=COMPOSE_HTTP_TIMEOUT=3600
-ExecStart=/usr/bin/env /usr/bin/docker-compose -f /home/ubuntu/programs/StarNavi-Network/docker-compose.yaml up --build
-ExecStop=/usr/bin/env /usr/bin/docker-compose -f /home/ubuntu/programs/StarNavi-Network/docker-compose.yaml stop
+ExecStart=/usr/bin/env /usr/bin/docker-compose -f /home/ubuntu/programs/Deverick/docker-compose.yaml up --build
+ExecStop=/usr/bin/env /usr/bin/docker-compose -f /home/ubuntu/programs/Deverick/docker-compose.yaml stop
 StandardOutput=syslog
 RemainAfterExit=yes
 

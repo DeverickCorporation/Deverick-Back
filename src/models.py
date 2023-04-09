@@ -33,8 +33,7 @@ class UserAccount(db.Model):
         if not posts:
             return False
 
-        likes_2d = [post.get_likes(date_from, date_to) for post in posts]
-        return [lk for lks in likes_2d for lk in lks]
+        return db.session.query(PostLike).join(Post).filter(Post.user_account == self,Post.creation_time.between(date_from, date_to)).all()
 
 
 class Post(db.Model):
@@ -62,14 +61,6 @@ class Post(db.Model):
             "likes_num": PostLike.query.filter_by(post=self).count(),
             "time": self.creation_time.strftime("%d/%m/%Y, %H:%M:%S"),
         }
-
-    def get_likes(self, date_from, date_to):
-        return (
-            PostLike.query.filter_by(post=self)
-            .filter(PostLike.creation_time >= date_from)
-            .filter(PostLike.creation_time <= date_to)
-            .all()
-        )
 
 
 class PostLike(db.Model):

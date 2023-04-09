@@ -169,10 +169,22 @@ def my_activity(current_user):
 @add_current_user
 def get_posts(current_user):
     data = request.args
+
     if fail_validation(data, ["limit"]) or not data["limit"].isdigit():
         abort(400)
 
-    posts = Post.query.order_by(desc(Post.creation_time)).limit(data["limit"]).all()
+    if "start_from" in data:
+        if not data["start_from"].isdigit():
+            return {"success": False, "message": "Incorrect start_from "}
+        posts = (
+            Post.query.filter(Post.id <= int(data["start_from"]))
+            .order_by(desc(Post.creation_time))
+            .limit(data["limit"])
+            .all()
+        )
+    else:
+        posts = Post.query.order_by(desc(Post.creation_time)).limit(data["limit"]).all()
+
     posts_dicts = get_all_dicts(posts)
 
     # add current user like info
