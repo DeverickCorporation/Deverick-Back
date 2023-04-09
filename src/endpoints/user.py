@@ -75,7 +75,7 @@ def verify():
 def create_post(current_user):
     data = request.json
     if resp := fail_validation(data, ["title", "text"], 5):
-        return {"success": False, "message": resp}, 400
+        return {"success": False, "message": resp}, 411
 
     new_post = Post(title=data["title"], text=data["text"], user_account=current_user)
     current_app.db.session.add(new_post)

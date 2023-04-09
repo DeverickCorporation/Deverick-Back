@@ -1,9 +1,44 @@
 version: "3.8"
 
 services:
-  deverick_back:
+  deverick_app:
     container_name: Deverick-Back
-    network_mode: "host"
-    build: "https://github.com/sovheiv/Deverick.git#main:"
+    build: .
+    ports:
+      - "5000:5000"
     env_file:
       - .env
+    depends_on:
+      - deverick_db
+    networks:
+      - dvr_network
+
+  deverick_nginx:
+    container_name: Deverick-Nginx
+    image: nginx:latest
+    ports:
+      - "8003:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - deverick_app
+    networks:
+      - dvr_network
+
+  deverick_db:
+    container_name: Deverick-DB
+    image: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    ports:
+      - $PGADMIN_PORT:5432
+    networks:
+      - dvr_network
+
+volumes:
+  db_data:
+
+networks:
+  dvr_network:
