@@ -14,7 +14,7 @@ handlers:
     formatter: light_formatter
 
 loggers:
-  verificator:
+  app:
     level: INFO
     handlers:
     - console_handler

@@ -9,11 +9,11 @@
 1. `mkdir programs/Deverick`
 1. `nano programs/Deverick/docker-compose.yaml`
 1. `nano programs/Deverick/.env`
-1. `sudo nano //etc/systemd/system/deverick.service`
+1. `sudo nano //etc/systemd/system/deverick_back.service`
 1. `sudo systemctl daemon-reload`
-1. `sudo systemctl enable deverick.service`
-1. `sudo systemctl start deverick.service`
-1. `sudo systemctl status deverick.service`
+1. `sudo systemctl enable deverick_back.service`
+1. `sudo systemctl start deverick_back.service`
+1. `sudo systemctl status deverick_back.service`
 
 ### Dev setup
 1. Optional PowerShell permitions: `Set-ExecutionPolicy unrestricted`

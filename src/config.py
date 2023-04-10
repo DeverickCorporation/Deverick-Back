@@ -11,7 +11,7 @@ env.read_env(override=True)
 class CustomConfig(Config):
     def load_config(self):
         with env.prefixed("FLASK_"):
-            self["SECRET_KEY"] = "1111" #secrets.token_hex(env.int("SECRET_KEY_BYTES"))
+            self["SECRET_KEY"] = secrets.token_hex(env.int("SECRET_KEY_BYTES"))
             self["SQLALCHEMY_TRACK_MODIFICATIONS"] = env.bool("SQLALCHEMY_TRACK_MODIFICATIONS")
 
         self["SQLALCHEMY_DATABASE_URI"] = self.load_db_conf()

@@ -59,7 +59,7 @@ class Post(db.Model):
             "post_text": self.text,
             "author_name": self.user_account.name,
             "likes_num": PostLike.query.filter_by(post=self).count(),
-            "time": self.creation_time.strftime("%d/%m/%Y, %H:%M:%S"),
+            "time": int(self.creation_time.timestamp()),
         }
 
 
@@ -78,5 +78,5 @@ class PostLike(db.Model):
             "post_id": self.post.id,
             "post_name": self.post.title,
             "person_name": self.user_account.name,
-            "time": self.creation_time.strftime("%d/%m/%Y, %H:%M:%S"),
+            "time": int(self.creation_time.timestamp()),
         }

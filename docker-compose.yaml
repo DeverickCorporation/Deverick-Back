@@ -3,7 +3,7 @@ version: "3.8"
 services:
   deverick_app:
     container_name: Deverick-Back
-    build: .
+    build: "https://github.com/sovheiv/Deverick-Back.git#main:"
     ports:
       - "5000:5000"
     env_file:
