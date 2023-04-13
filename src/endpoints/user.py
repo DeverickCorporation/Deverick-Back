@@ -160,8 +160,8 @@ def my_activity(current_user):
     request.ignore_update_time = True
     return {
         "success": True,
-        "last_login": current_user.last_login_time.strftime("%d/%m/%Y, %H:%M:%S"),
-        "last_request": current_user.last_request_time.strftime("%d/%m/%Y, %H:%M:%S"),
+        "last_login": int(current_user.last_login_time.timestamp()),
+        "last_request": int(current_user.last_request_time.timestamp()),
     }, 200
 
 
